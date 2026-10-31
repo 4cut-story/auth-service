@@ -1,0 +1,80 @@
+= auth-service API
+:doctype: book
+:icons: font
+:toc: left
+:toclevels: 2
+
+회원, GitHub·Google 로그인, JWT 발급·갱신, JWKS. 이 문서는 테스트(Spring REST Docs)가 만든 실제 요청·응답으로 만든다.
+
+* 외부 경로는 web → api-gateway를 거친다. `/auth/**`는 인증이 없고, `/api/v1/**`는 게이트웨이가 JWT를 검증해 `X-User-Id`를 붙인다.
+* 오류는 모두 `{error: {code, message, traceId}}` 형식이다 (docs `api-conventions.md`).
+
+== 로그인
+
+=== 로그인 시작
+`GET /auth/login/{provider}` (`github`, `google`). 공급자 로그인 화면으로 302. 설정되지 않은 공급자는 404.
+공급자는 `{PUBLIC_BASE_URL}/auth/callback/{provider}`로 돌아오고, 로그인이 끝나면 web의 `/auth/complete?code=`로 일회용 코드를 넘긴다.
+
+include::{snippets}/auth-login/http-request.adoc[]
+include::{snippets}/auth-login/http-response.adoc[]
+
+=== 켜진 공급자
+include::{snippets}/auth-providers/http-response.adoc[]
+include::{snippets}/auth-providers/response-fields.adoc[]
+
+=== 코드를 토큰으로 바꾸기
+`POST /auth/token` (web 서버만 부른다)
+
+include::{snippets}/auth-token/http-request.adoc[]
+include::{snippets}/auth-token/request-fields.adoc[]
+include::{snippets}/auth-token/http-response.adoc[]
+include::{snippets}/auth-token/response-fields.adoc[]
+
+없거나 만료된 코드: `400 INVALID_AUTH_CODE`
+
+include::{snippets}/auth-token-invalid/http-response.adoc[]
+
+=== 토큰 갱신
+`POST /auth/refresh`. Refresh Token은 쓸 때마다 바뀐다. 이미 쓴 토큰이 다시 오면 그 로그인의 토큰을 모두 폐기한다.
+
+include::{snippets}/auth-refresh/http-request.adoc[]
+include::{snippets}/auth-refresh/http-response.adoc[]
+include::{snippets}/auth-refresh/response-fields.adoc[]
+
+없거나 만료·폐기·재사용된 토큰: `401 INVALID_REFRESH_TOKEN`
+
+include::{snippets}/auth-refresh-invalid/http-response.adoc[]
+
+=== 로그아웃
+include::{snippets}/auth-logout/http-request.adoc[]
+include::{snippets}/auth-logout/http-response.adoc[]
+
+=== JWKS
+`GET /.well-known/jwks.json`. 게이트웨이가 클러스터 안에서 읽는다 (외부 경로 아님).
+
+include::{snippets}/jwks/http-response.adoc[]
+
+== 회원
+
+=== 내 정보
+include::{snippets}/me/http-request.adoc[]
+include::{snippets}/me/request-headers.adoc[]
+include::{snippets}/me/http-response.adoc[]
+include::{snippets}/me/response-fields.adoc[]
+
+=== 사용자 일괄 조회 (작성자 표시용)
+include::{snippets}/users/http-request.adoc[]
+include::{snippets}/users/query-parameters.adoc[]
+include::{snippets}/users/http-response.adoc[]
+include::{snippets}/users/response-fields.adoc[]
+
+=== 사용자 한 명
+include::{snippets}/user/http-request.adoc[]
+include::{snippets}/user/path-parameters.adoc[]
+include::{snippets}/user/http-response.adoc[]
+
+=== 탈퇴
+`DELETE /api/v1/me` → `202`. 대화·만화·게시물·댓글을 지우고 계정을 지운다. 정리 중에는 로그인할 수 없다.
+
+include::{snippets}/me-delete/http-request.adoc[]
+include::{snippets}/me-delete/http-response.adoc[]
