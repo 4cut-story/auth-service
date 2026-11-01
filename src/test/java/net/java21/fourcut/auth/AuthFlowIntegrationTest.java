@@ -173,6 +173,35 @@ class AuthFlowIntegrationTest {
                         .optional()
                         .type(JsonFieldType.STRING))));
 
+    String nickname =
+        JsonPath.read(
+            mvc.perform(get("/api/v1/me").header("X-User-Id", userId))
+                .andReturn()
+                .getResponse()
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8),
+            "$.nickname");
+    mvc.perform(get("/api/v1/users/lookup").param("nickname", nickname))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(userId))
+        .andDo(
+            document(
+                "user-lookup",
+                preprocessResponse(prettyPrint()),
+                queryParameters(
+                    parameterWithName("nickname").description("닉네임 (사용자 페이지 주소 /@닉네임의 닉네임)")),
+                responseFields(
+                    fieldWithPath("id").description("사용자 ID"),
+                    fieldWithPath("nickname").description("닉네임"),
+                    fieldWithPath("avatarUrl")
+                        .description("프로필 이미지 주소")
+                        .optional()
+                        .type(JsonFieldType.STRING))));
+    mvc.perform(get("/api/v1/users/lookup").param("nickname", nickname + "-없는사람"))
+        .andExpect(status().isNotFound());
+    mvc.perform(get("/api/v1/users").param("ids", userId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items.length()").value(1));
+
     mvc.perform(get("/api/v1/users/{id}", userId).header("X-User-Id", userId))
         .andExpect(status().isOk())
         .andDo(
