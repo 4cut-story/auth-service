@@ -73,6 +73,14 @@ include::{snippets}/user/http-request.adoc[]
 include::{snippets}/user/path-parameters.adoc[]
 include::{snippets}/user/http-response.adoc[]
 
+=== 닉네임으로 사용자 찾기
+사용자 페이지 주소 `/@닉네임`을 사용자로 바꿀 때 쓴다. 로그인하지 않아도 된다. 없으면 `404`.
+
+include::{snippets}/user-lookup/http-request.adoc[]
+include::{snippets}/user-lookup/query-parameters.adoc[]
+include::{snippets}/user-lookup/http-response.adoc[]
+include::{snippets}/user-lookup/response-fields.adoc[]
+
 === 탈퇴
 `DELETE /api/v1/me` → `202`. 대화·만화·게시물·댓글을 지우고 계정을 지운다. 정리 중에는 로그인할 수 없다.
 

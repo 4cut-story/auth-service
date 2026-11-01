@@ -41,14 +41,21 @@ public class UserController {
     return ResponseEntity.accepted().build();
   }
 
+  /** 사용자 한 명. 로그인하지 않아도 볼 수 있다 (사용자 페이지). */
   @GetMapping("/api/v1/users/{id}")
-  public UserView user(@RequestHeader(HeaderNames.USER_ID) String viewer, @PathVariable String id) {
+  public UserView user(@PathVariable String id) {
     return queries.user(id);
   }
 
+  /** 닉네임으로 사용자 찾기. 사용자 페이지 주소 {@code /@닉네임}을 사용자로 바꿀 때 쓴다. 로그인하지 않아도 된다. */
+  @GetMapping("/api/v1/users/lookup")
+  public UserView lookup(@RequestParam String nickname) {
+    return queries.byNickname(nickname);
+  }
+
+  /** 작성자 표시용 일괄 조회. 로그인하지 않아도 된다 (포털). */
   @GetMapping("/api/v1/users")
-  public ItemsResponse<UserView> users(
-      @RequestHeader(HeaderNames.USER_ID) String viewer, @RequestParam String ids) {
+  public ItemsResponse<UserView> users(@RequestParam String ids) {
     List<String> parsed = parseIds(ids);
     return new ItemsResponse<>(queries.users(parsed));
   }

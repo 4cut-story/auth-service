@@ -35,6 +35,15 @@ public class UserQueryService {
     return UserView.of(active(userId));
   }
 
+  /** 닉네임은 회원마다 고유하다. 없거나 탈퇴 처리 중이면 404. */
+  public UserView byNickname(String nickname) {
+    return users
+        .findByNickname(nickname == null ? "" : nickname.strip())
+        .filter(u -> !u.isDeleting())
+        .map(UserView::of)
+        .orElseThrow(ApiException::notFound);
+  }
+
   public List<UserView> users(List<String> ids) {
     return users.findByPublicIdInAndStatus(ids, User.Status.ACTIVE).stream()
         .map(UserView::of)
