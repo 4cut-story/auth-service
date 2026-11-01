@@ -13,7 +13,7 @@ import net.java21.fourcut.auth.user.BaseEntity;
 public class RefreshToken extends BaseEntity {
 
   @Column(name = "user_id", nullable = false)
-  private UUID userId;
+  private Long userId;
 
   @Column(name = "token_hash", nullable = false, length = 64)
   private String tokenHash;
@@ -34,14 +34,14 @@ public class RefreshToken extends BaseEntity {
     // JPA 전용
   }
 
-  public RefreshToken(UUID userId, String tokenHash, UUID familyId, Instant expiresAt) {
+  public RefreshToken(Long userId, String tokenHash, UUID familyId, Instant expiresAt) {
     this.userId = userId;
     this.tokenHash = tokenHash;
     this.familyId = familyId;
     this.expiresAt = expiresAt;
   }
 
-  public UUID getUserId() {
+  public Long getUserId() {
     return userId;
   }
 

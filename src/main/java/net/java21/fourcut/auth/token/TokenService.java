@@ -49,8 +49,10 @@ public class TokenService {
 
   /** 로그인 직후 새 토큰 쌍 (새 family). */
   @Transactional
-  public TokenPair issue(UUID userId) {
-    return pair(userId, UUID.randomUUID());
+  public TokenPair issue(Long userId) {
+    User user =
+        users.findById(userId).orElseThrow(() -> new ApiException(ErrorCode.INVALID_AUTH_CODE));
+    return pair(user, UUID.randomUUID());
   }
 
   @Transactional(noRollbackFor = ApiException.class, propagation = Propagation.REQUIRED)
@@ -76,7 +78,7 @@ public class TokenService {
       throw new ApiException(ErrorCode.ACCOUNT_DELETING);
     }
     token.markUsed(now);
-    return pair(user.getId(), token.getFamilyId());
+    return pair(user, token.getFamilyId());
   }
 
   /** 로그아웃: 그 로그인의 Refresh Token을 모두 폐기한다. 없는 토큰이어도 성공(멱등). */
@@ -88,18 +90,18 @@ public class TokenService {
   }
 
   @Transactional
-  public void revokeAll(UUID userId) {
+  public void revokeAll(Long userId) {
     refreshTokens.revokeUser(userId, clock.instant());
   }
 
-  private TokenPair pair(UUID userId, UUID familyId) {
+  private TokenPair pair(User user, UUID familyId) {
     byte[] bytes = new byte[32];
     RANDOM.nextBytes(bytes);
     String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     refreshTokens.save(
         new RefreshToken(
-            userId, hash(raw), familyId, clock.instant().plus(properties.refreshTokenTtl())));
-    String access = accessTokens.issue(userId, accounts.roleCodes(userId));
+            user.getId(), hash(raw), familyId, clock.instant().plus(properties.refreshTokenTtl())));
+    String access = accessTokens.issue(user.getPublicId(), accounts.roleCodes(user.getId()));
     return new TokenPair(access, accessTokens.expiresInSeconds(), raw);
   }
 

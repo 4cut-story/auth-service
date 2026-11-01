@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
-public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
+public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
   Optional<RefreshToken> findByTokenHash(String tokenHash);
 
@@ -17,5 +17,5 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 
   @Modifying
   @Query("update RefreshToken t set t.revokedAt = ?2 where t.userId = ?1 and t.revokedAt is null")
-  int revokeUser(UUID userId, Instant now);
+  int revokeUser(Long userId, Instant now);
 }

@@ -1,6 +1,5 @@
 package net.java21.fourcut.auth.withdraw;
 
-import java.util.UUID;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.service.annotation.DeleteExchange;
 
@@ -8,5 +7,5 @@ import org.springframework.web.service.annotation.DeleteExchange;
 public interface UserDataClient {
 
   @DeleteExchange("/internal/users/{userId}/data")
-  void deleteUserData(@PathVariable UUID userId);
+  void deleteUserData(@PathVariable String userId);
 }

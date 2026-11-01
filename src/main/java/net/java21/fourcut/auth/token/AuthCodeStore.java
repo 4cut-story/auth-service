@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.java21.fourcut.auth.AuthProperties;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,7 +29,7 @@ public class AuthCodeStore {
     this.clock = clock;
   }
 
-  public String issue(UUID userId) {
+  public String issue(Long userId) {
     byte[] bytes = new byte[32];
     RANDOM.nextBytes(bytes);
     String code = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
@@ -39,7 +38,7 @@ public class AuthCodeStore {
   }
 
   /** 코드를 꺼낸다. 한 번 꺼내면 지워진다. */
-  public Optional<UUID> consume(String code) {
+  public Optional<Long> consume(String code) {
     Entry entry = code == null ? null : codes.remove(code);
     if (entry == null || !entry.expiresAt().isAfter(clock.instant())) {
       return Optional.empty();
@@ -57,5 +56,5 @@ public class AuthCodeStore {
     return codes.size();
   }
 
-  private record Entry(UUID userId, Instant expiresAt) {}
+  private record Entry(Long userId, Instant expiresAt) {}
 }

@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
-import java.util.UUID;
+import net.java21.fourcut.auth.support.PublicId;
 import net.java21.fourcut.auth.user.UserRepository;
 import net.java21.fourcut.auth.withdraw.UserDataClient;
 import net.java21.fourcut.auth.withdraw.WithdrawalService;
@@ -103,13 +103,13 @@ class AuthFlowIntegrationTest {
         .getContentAsString();
   }
 
-  private static UUID subject(String tokens) {
+  private static String subject(String tokens) {
     String access = JsonPath.read(tokens, "$.accessToken");
     String payload =
         new String(
             java.util.Base64.getUrlDecoder().decode(access.split("\\.")[1]),
             java.nio.charset.StandardCharsets.UTF_8);
-    return UUID.fromString(JsonPath.read(payload, "$.sub"));
+    return JsonPath.read(payload, "$.sub");
   }
 
   @Test
@@ -133,7 +133,7 @@ class AuthFlowIntegrationTest {
             .andReturn()
             .getResponse()
             .getContentAsString();
-    UUID userId = subject(tokens);
+    String userId = subject(tokens);
 
     mvc.perform(get("/api/v1/me").header("X-User-Id", userId))
         .andExpect(status().isOk())
@@ -156,7 +156,7 @@ class AuthFlowIntegrationTest {
     mvc.perform(
             get("/api/v1/users")
                 .header("X-User-Id", userId)
-                .param("ids", userId + "," + UUID.randomUUID()))
+                .param("ids", userId + "," + PublicId.generate()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items.length()").value(1))
         .andDo(
@@ -320,17 +320,18 @@ class AuthFlowIntegrationTest {
     mvc.perform(get("/api/v1/me"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
-    mvc.perform(get("/api/v1/users").header("X-User-Id", UUID.randomUUID()).param("ids", "nope"))
+    mvc.perform(get("/api/v1/users").header("X-User-Id", PublicId.generate()).param("ids", "nope"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
-    mvc.perform(get("/api/v1/users/{id}", UUID.randomUUID()).header("X-User-Id", UUID.randomUUID()))
+    mvc.perform(
+            get("/api/v1/users/{id}", PublicId.generate()).header("X-User-Id", PublicId.generate()))
         .andExpect(status().isNotFound());
   }
 
   @Test
   @DisplayName("M-03: 탈퇴하면 다른 서비스 데이터를 지우고 계정을 지운다. 실패하면 DELETING으로 남아 로그인할 수 없다")
   void withdraw() throws Exception {
-    UUID userId = subject(exchange(devLogin("bye")));
+    String userId = subject(exchange(devLogin("bye")));
     mvc.perform(delete("/api/v1/me").header("X-User-Id", userId))
         .andExpect(status().isAccepted())
         .andDo(
@@ -339,14 +340,14 @@ class AuthFlowIntegrationTest {
                 requestHeaders(headerWithName("X-User-Id").description("게이트웨이가 붙인 사용자 ID"))));
     verify(conversation).deleteUserData(userId);
     verify(content).deleteUserData(userId);
-    assertThat(users.findById(userId)).isEmpty();
+    assertThat(users.findByPublicId(userId)).isEmpty();
 
     String failingCode = devLogin("stuck");
     String tokens = exchange(failingCode);
-    UUID stuck = subject(tokens);
+    String stuck = subject(tokens);
     doThrow(new ResourceAccessException("down")).when(content).deleteUserData(any());
     mvc.perform(delete("/api/v1/me").header("X-User-Id", stuck)).andExpect(status().isAccepted());
-    assertThat(users.findById(stuck)).get().extracting(u -> u.isDeleting()).isEqualTo(true);
+    assertThat(users.findByPublicId(stuck)).get().extracting(u -> u.isDeleting()).isEqualTo(true);
 
     mvc.perform(
             post("/auth/dev-login")
@@ -355,9 +356,9 @@ class AuthFlowIntegrationTest {
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.error.code").value("ACCOUNT_DELETING"));
 
-    doThrow(new RuntimeException("unused")).when(conversation).deleteUserData(UUID.randomUUID());
+    doThrow(new RuntimeException("unused")).when(conversation).deleteUserData(PublicId.generate());
     org.mockito.Mockito.reset(content);
     withdrawals.retryPending();
-    assertThat(users.findById(stuck)).isEmpty();
+    assertThat(users.findByPublicId(stuck)).isEmpty();
   }
 }

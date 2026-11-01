@@ -2,9 +2,9 @@ package net.java21.fourcut.auth.user;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import net.java21.fourcut.auth.error.ApiException;
 import net.java21.fourcut.auth.error.ErrorCode;
+import net.java21.fourcut.auth.support.PublicId;
 import net.java21.fourcut.auth.web.HeaderNames;
 import net.java21.fourcut.auth.withdraw.WithdrawalService;
 import org.springframework.http.ResponseEntity;
@@ -30,30 +30,30 @@ public class UserController {
   }
 
   @GetMapping("/api/v1/me")
-  public MeView me(@RequestHeader(HeaderNames.USER_ID) UUID userId) {
+  public MeView me(@RequestHeader(HeaderNames.USER_ID) String userId) {
     return queries.me(userId);
   }
 
   /** 탈퇴 (M-03). 계정을 탈퇴 처리 중으로 바꾸고, 다른 서비스 데이터를 지운 뒤 계정을 지운다. */
   @DeleteMapping("/api/v1/me")
-  public ResponseEntity<Void> withdraw(@RequestHeader(HeaderNames.USER_ID) UUID userId) {
+  public ResponseEntity<Void> withdraw(@RequestHeader(HeaderNames.USER_ID) String userId) {
     withdrawals.request(userId);
     return ResponseEntity.accepted().build();
   }
 
   @GetMapping("/api/v1/users/{id}")
-  public UserView user(@RequestHeader(HeaderNames.USER_ID) UUID viewer, @PathVariable UUID id) {
+  public UserView user(@RequestHeader(HeaderNames.USER_ID) String viewer, @PathVariable String id) {
     return queries.user(id);
   }
 
   @GetMapping("/api/v1/users")
   public ItemsResponse<UserView> users(
-      @RequestHeader(HeaderNames.USER_ID) UUID viewer, @RequestParam String ids) {
-    List<UUID> parsed = parseIds(ids);
+      @RequestHeader(HeaderNames.USER_ID) String viewer, @RequestParam String ids) {
+    List<String> parsed = parseIds(ids);
     return new ItemsResponse<>(queries.users(parsed));
   }
 
-  static List<UUID> parseIds(String ids) {
+  static List<String> parseIds(String ids) {
     List<String> parts =
         Arrays.stream(ids.split(","))
             .map(String::strip)
@@ -63,10 +63,9 @@ public class UserController {
     if (parts.isEmpty() || parts.size() > MAX_IDS) {
       throw new ApiException(ErrorCode.VALIDATION_FAILED, "ids는 1~50개여야 해요.");
     }
-    try {
-      return parts.stream().map(UUID::fromString).toList();
-    } catch (IllegalArgumentException e) {
-      throw new ApiException(ErrorCode.VALIDATION_FAILED, "ids 형식이 올바르지 않아요.", e);
+    if (!parts.stream().allMatch(PublicId::isValid)) {
+      throw new ApiException(ErrorCode.VALIDATION_FAILED, "ids 형식이 올바르지 않아요.");
     }
+    return parts;
   }
 }

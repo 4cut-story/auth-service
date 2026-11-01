@@ -7,7 +7,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import net.java21.fourcut.auth.AuthProperties;
 import org.junit.jupiter.api.DisplayName;
@@ -53,7 +52,7 @@ class AuthCodeStoreTest {
   @Test
   @DisplayName("코드는 한 번만, 2분 안에만 쓸 수 있고, 지난 코드는 정리된다")
   void singleUseAndExpiry() {
-    UUID user = UUID.randomUUID();
+    Long user = 42L;
     String code = store.issue(user);
     assertThat(store.consume(code)).contains(user);
     assertThat(store.consume(code)).isEmpty();
