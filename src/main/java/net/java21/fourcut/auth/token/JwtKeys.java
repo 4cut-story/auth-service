@@ -45,7 +45,7 @@ public final class JwtKeys {
   static RSAKey load(String pem, String keyId) {
     if (pem == null || pem.isBlank()) {
       log.warn("JWT_PRIVATE_KEY가 없어 임시 서명 키를 만든다. 재시작하면 Access Token이 무효가 된다.");
-      return generate(keyId == null || keyId.isBlank() ? "ephemeral" : keyId);
+      return generate();
     }
     try {
       String base64 = pem.replaceAll("-----(BEGIN|END) PRIVATE KEY-----", "").replaceAll("\\s", "");
@@ -67,9 +67,16 @@ public final class JwtKeys {
     }
   }
 
-  private static RSAKey generate(String keyId) {
+  /**
+   * 임시 키의 kid는 키 지문이다. 재시작마다 kid가 바뀌어야 게이트웨이가 모르는 kid를 보고 JWKS를 다시 받는다. 같은 kid로 키만 바뀌면 게이트웨이는 캐시한 옛
+   * 키로 검사해 새 토큰을 모두 거절한다.
+   */
+  private static RSAKey generate() {
     try {
-      return new RSAKeyGenerator(2048).keyUse(KeyUse.SIGNATURE).keyID(keyId).generate();
+      return new RSAKeyGenerator(2048)
+          .keyUse(KeyUse.SIGNATURE)
+          .keyIDFromThumbprint(true)
+          .generate();
     } catch (JOSEException e) {
       throw new IllegalStateException(e);
     }

@@ -31,10 +31,12 @@ class JwtKeysTest {
   }
 
   @Test
-  @DisplayName("키가 없으면 임시 키를 만들고, 형식이 틀리면 시작하지 않는다")
+  @DisplayName("키가 없으면 임시 키를 만들고 kid가 매번 달라진다, 형식이 틀리면 시작하지 않는다")
   void ephemeralOrFail() {
-    assertThat(JwtKeys.load(null, null).getKeyID()).isEqualTo("ephemeral");
-    assertThat(JwtKeys.load(" ", "k").getKeyID()).isEqualTo("k");
+    RSAKey first = JwtKeys.load(null, null);
+    RSAKey second = JwtKeys.load(" ", "k");
+    assertThat(first.getKeyID()).isNotBlank();
+    assertThat(second.getKeyID()).isNotBlank().isNotEqualTo(first.getKeyID()).isNotEqualTo("k");
     assertThatThrownBy(() -> JwtKeys.load("not a key", null))
         .isInstanceOf(IllegalStateException.class);
   }
