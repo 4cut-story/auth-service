@@ -2,8 +2,8 @@ package net.java21.fourcut.auth.user;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
 import net.java21.fourcut.auth.error.ApiException;
+import net.java21.fourcut.auth.support.PublicId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,26 +20,35 @@ public class UserQueryService {
     this.accounts = accounts;
   }
 
-  public MeView me(UUID userId) {
+  public MeView me(String userId) {
     User user = active(userId);
     List<Provider> providers =
-        accounts.findByUserId(userId).stream()
+        accounts.findByUserId(user.getId()).stream()
             .map(SocialAccount::getProvider)
             .distinct()
             .sorted(Comparator.naturalOrder())
             .toList();
-    return new MeView(user.getId(), user.getNickname(), user.getAvatarUrl(), providers);
+    return new MeView(user.getPublicId(), user.getNickname(), user.getAvatarUrl(), providers);
   }
 
-  public UserView user(UUID userId) {
+  public UserView user(String userId) {
     return UserView.of(active(userId));
   }
 
-  public List<UserView> users(List<UUID> ids) {
-    return users.findByIdInAndStatus(ids, User.Status.ACTIVE).stream().map(UserView::of).toList();
+  public List<UserView> users(List<String> ids) {
+    return users.findByPublicIdInAndStatus(ids, User.Status.ACTIVE).stream()
+        .map(UserView::of)
+        .toList();
   }
 
-  private User active(UUID userId) {
-    return users.findById(userId).filter(u -> !u.isDeleting()).orElseThrow(ApiException::notFound);
+  /** 공개 ID로 찾는다. 형식이 틀린 ID도 없는 회원처럼 404로 답한다. */
+  private User active(String userId) {
+    if (!PublicId.isValid(userId)) {
+      throw ApiException.notFound();
+    }
+    return users
+        .findByPublicId(userId)
+        .filter(u -> !u.isDeleting())
+        .orElseThrow(ApiException::notFound);
   }
 }

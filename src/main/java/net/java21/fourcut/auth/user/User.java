@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import net.java21.fourcut.auth.support.PublicId;
 
 /** 회원. 사용자 식별은 (provider, provider_user_id)인 {@link SocialAccount}로 한다. */
 @Entity
@@ -16,6 +17,10 @@ public class User extends BaseEntity {
     ACTIVE,
     DELETING
   }
+
+  /** 밖에 보이는 사용자 ID. JWT sub, X-User-Id, 다른 서비스의 owner_id가 이 값이다. */
+  @Column(name = "public_id", nullable = false, updatable = false, length = PublicId.LENGTH)
+  private String publicId = PublicId.generate();
 
   @Column(nullable = false, length = 30)
   private String nickname;
@@ -38,6 +43,10 @@ public class User extends BaseEntity {
     this.nickname = nickname;
     this.avatarUrl = avatarUrl;
     this.email = email;
+  }
+
+  public String getPublicId() {
+    return publicId;
   }
 
   public String getNickname() {

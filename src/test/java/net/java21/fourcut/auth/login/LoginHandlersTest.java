@@ -11,7 +11,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import net.java21.fourcut.auth.AuthProperties;
 import net.java21.fourcut.auth.error.ApiException;
 import net.java21.fourcut.auth.error.ErrorCode;
@@ -84,7 +83,7 @@ class LoginHandlersTest {
   @DisplayName("로그인에 성공하면 세션을 끝내고 web /auth/complete로 일회용 코드를 넘긴다")
   void success() throws Exception {
     User user = new User("alice", null, null);
-    UUID id = UUID.randomUUID();
+    Long id = 42L;
     ReflectionTestUtils.setField(user, "id", id);
     LoginProfile profile = new LoginProfile(Provider.GITHUB, "1", null, false, "alice", null);
     when(clients.loadAuthorizedClient("github", "1")).thenReturn(authorized());

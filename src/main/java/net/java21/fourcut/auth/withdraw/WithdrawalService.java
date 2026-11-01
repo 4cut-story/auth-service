@@ -1,6 +1,5 @@
 package net.java21.fourcut.auth.withdraw;
 
-import java.util.UUID;
 import net.java21.fourcut.auth.error.ApiException;
 import net.java21.fourcut.auth.token.TokenService;
 import net.java21.fourcut.auth.user.User;
@@ -41,18 +40,22 @@ public class WithdrawalService {
     this.tx = tx;
   }
 
-  public void request(UUID userId) {
-    tx.executeWithoutResult(
-        status -> {
-          User user = users.findById(userId).orElseThrow(ApiException::notFound);
-          user.markDeleting();
-          tokens.revokeAll(userId);
-        });
-    complete(userId);
+  /** 탈퇴 요청. userId는 공개 ID(X-User-Id)다. */
+  public void request(String userId) {
+    User user =
+        tx.execute(
+            status -> {
+              User found = users.findByPublicId(userId).orElseThrow(ApiException::notFound);
+              found.markDeleting();
+              tokens.revokeAll(found.getId());
+              return found;
+            });
+    complete(user);
   }
 
   /** 다른 서비스 데이터를 지우고 계정을 지운다. 실패하면 false (다음 재시도에서 이어서 한다). */
-  public boolean complete(UUID userId) {
+  public boolean complete(User user) {
+    String userId = user.getPublicId();
     try {
       conversation.deleteUserData(userId);
       content.deleteUserData(userId);
@@ -60,12 +63,12 @@ public class WithdrawalService {
       log.warn("탈퇴 정리 실패, 나중에 다시 시도: userId={} {}", userId, e.toString());
       return false;
     }
-    tx.executeWithoutResult(status -> users.deleteById(userId));
+    tx.executeWithoutResult(status -> users.deleteById(user.getId()));
     return true;
   }
 
   @Scheduled(fixedDelayString = "${auth.withdrawal-retry-delay:5m}", initialDelayString = "1m")
   public void retryPending() {
-    users.findByStatus(User.Status.DELETING).forEach(u -> complete(u.getId()));
+    users.findByStatus(User.Status.DELETING).forEach(this::complete);
   }
 }

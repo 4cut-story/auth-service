@@ -4,7 +4,6 @@ import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import net.java21.fourcut.auth.error.ApiException;
 import net.java21.fourcut.auth.error.ErrorCode;
@@ -51,7 +50,7 @@ public class AccountService {
   }
 
   @Transactional(readOnly = true)
-  public List<String> roleCodes(UUID userId) {
+  public List<String> roleCodes(Long userId) {
     return roles.findCodesByUserId(userId);
   }
 

@@ -15,7 +15,7 @@ import java.util.UUID;
 import net.java21.fourcut.auth.AuthProperties;
 import org.springframework.stereotype.Component;
 
-/** Access Token(JWT, RS256, 15분). 클레임: sub(사용자 ID), roles(권한 코드 배열). */
+/** Access Token(JWT, RS256, 15분). 클레임: sub(사용자 공개 ID), roles(권한 코드 배열). */
 @Component
 public class AccessTokens {
 
@@ -29,12 +29,12 @@ public class AccessTokens {
     this.clock = clock;
   }
 
-  public String issue(UUID userId, List<String> roles) {
+  public String issue(String userId, List<String> roles) {
     Instant now = clock.instant();
     JWTClaimsSet claims =
         new JWTClaimsSet.Builder()
             .issuer(properties.publicBaseUrl().toString())
-            .subject(userId.toString())
+            .subject(userId)
             .claim("roles", roles)
             .issueTime(Date.from(now))
             .expirationTime(Date.from(now.plus(properties.accessTokenTtl())))

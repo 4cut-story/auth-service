@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
-import java.util.UUID;
 
 /** 로그인 공급자 계정. 한 회원이 GitHub·Google 계정을 함께 가질 수 있다. */
 @Entity
@@ -13,7 +12,7 @@ import java.util.UUID;
 public class SocialAccount extends BaseEntity {
 
   @Column(name = "user_id", nullable = false)
-  private UUID userId;
+  private Long userId;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
@@ -33,7 +32,7 @@ public class SocialAccount extends BaseEntity {
   }
 
   public SocialAccount(
-      UUID userId, Provider provider, String providerUserId, String email, boolean emailVerified) {
+      Long userId, Provider provider, String providerUserId, String email, boolean emailVerified) {
     this.userId = userId;
     this.provider = provider;
     this.providerUserId = providerUserId;
@@ -41,7 +40,7 @@ public class SocialAccount extends BaseEntity {
     this.emailVerified = emailVerified;
   }
 
-  public UUID getUserId() {
+  public Long getUserId() {
     return userId;
   }
 
