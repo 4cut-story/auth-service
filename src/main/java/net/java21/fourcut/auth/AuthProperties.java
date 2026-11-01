@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param accessTokenTtl Access Token 유효 시간 (15분)
  * @param refreshTokenTtl Refresh Token 유효 시간 (14일)
  * @param authCodeTtl 로그인 뒤 web에 넘기는 일회용 코드 유효 시간
- * @param jwtPrivateKey RS256 서명 개인키 (PKCS#8 PEM). 비어 있으면 시작할 때 임시 키를 만든다
+ * @param jwtPrivateKey RS256 서명 개인키 (PKCS#8 PEM). 비어 있으면 DB에 한 번 만들어 둔 키를 쓴다
  * @param jwtKeyId 서명 키 ID (JWKS kid)
  * @param devLoginEnabled 개발용 로그인(공급자 없이 닉네임으로 로그인). local에서만 켠다
  * @param conversationUrl conversation-service 주소 (탈퇴 정리)
