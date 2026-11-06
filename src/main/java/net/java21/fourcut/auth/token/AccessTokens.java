@@ -30,16 +30,24 @@ public class AccessTokens {
   }
 
   public String issue(String userId, List<String> roles) {
+    return issue(userId, roles, null, null);
+  }
+
+  /** 개인 액세스 토큰에서 바꾼 Access Token. {@code scope}(권한 범위)와 {@code pat}(토큰 공개 ID) 클레임이 더 붙는다. */
+  public String issue(String userId, List<String> roles, String scope, String patId) {
     Instant now = clock.instant();
-    JWTClaimsSet claims =
+    JWTClaimsSet.Builder builder =
         new JWTClaimsSet.Builder()
             .issuer(properties.publicBaseUrl().toString())
             .subject(userId)
             .claim("roles", roles)
             .issueTime(Date.from(now))
             .expirationTime(Date.from(now.plus(properties.accessTokenTtl())))
-            .jwtID(UUID.randomUUID().toString())
-            .build();
+            .jwtID(UUID.randomUUID().toString());
+    if (scope != null) {
+      builder.claim("scope", scope).claim("pat", patId);
+    }
+    JWTClaimsSet claims = builder.build();
     SignedJWT jwt =
         new SignedJWT(
             new JWSHeader.Builder(JWSAlgorithm.RS256)

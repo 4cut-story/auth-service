@@ -20,6 +20,7 @@ public enum ErrorCode {
   ACCOUNT_DELETING(HttpStatus.FORBIDDEN, "탈퇴 처리 중인 계정이에요."),
   INVALID_AUTH_CODE(HttpStatus.BAD_REQUEST, "로그인 코드가 없거나 만료됐어요. 다시 로그인해 주세요."),
   INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "로그인이 만료됐어요. 다시 로그인해 주세요."),
+  INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "토큰이 없거나 만료·폐기됐어요."),
   ;
 
   private final HttpStatus status;
