@@ -171,7 +171,8 @@ class AuthFlowIntegrationTest {
                     fieldWithPath("items[].avatarUrl")
                         .description("프로필 이미지 주소")
                         .optional()
-                        .type(JsonFieldType.STRING))));
+                        .type(JsonFieldType.STRING),
+                    fieldWithPath("items[].joinedAt").description("가입 시각"))));
 
     String nickname =
         JsonPath.read(
@@ -195,7 +196,8 @@ class AuthFlowIntegrationTest {
                     fieldWithPath("avatarUrl")
                         .description("프로필 이미지 주소")
                         .optional()
-                        .type(JsonFieldType.STRING))));
+                        .type(JsonFieldType.STRING),
+                    fieldWithPath("joinedAt").description("가입 시각"))));
     mvc.perform(get("/api/v1/users/lookup").param("nickname", nickname + "-없는사람"))
         .andExpect(status().isNotFound());
     mvc.perform(get("/api/v1/users").param("ids", userId))
@@ -204,6 +206,7 @@ class AuthFlowIntegrationTest {
 
     mvc.perform(get("/api/v1/users/{id}", userId).header("X-User-Id", userId))
         .andExpect(status().isOk())
+        .andExpect(jsonPath("$.joinedAt").isNotEmpty())
         .andDo(
             document(
                 "user",
@@ -215,7 +218,8 @@ class AuthFlowIntegrationTest {
                     fieldWithPath("avatarUrl")
                         .description("프로필 이미지 주소")
                         .optional()
-                        .type(JsonFieldType.STRING))));
+                        .type(JsonFieldType.STRING),
+                    fieldWithPath("joinedAt").description("가입 시각"))));
   }
 
   @Test
