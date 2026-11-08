@@ -19,7 +19,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 토큰 발급·갱신·폐기. Refresh Token은 쓸 때마다 바꾼다(rotation). 이미 쓴 토큰이 다시 오면 탈취로 보고 그 로그인의 토큰을 모두 폐기한다. */
+/**
+ * 토큰 발급·갱신·폐기. Refresh Token은 쓸 때마다 바꾼다(rotation). 이미 쓴 토큰이 유예 시간(30초)이 지나 다시 오면 탈취로 보고 그 로그인의 토큰을
+ * 모두 폐기한다.
+ */
 @Service
 public class TokenService {
 
@@ -62,12 +65,13 @@ public class TokenService {
         refreshTokens
             .findByTokenHash(hash(rawRefreshToken))
             .orElseThrow(() -> new ApiException(ErrorCode.INVALID_REFRESH_TOKEN));
-    if (token.getUsedAt() != null && token.getRevokedAt() == null) {
+    boolean justUsed = justUsed(token, now);
+    if (token.getUsedAt() != null && token.getRevokedAt() == null && !justUsed) {
       // 이미 쓴 토큰의 재사용: 탈취 가능성이 있으므로 그 로그인의 토큰을 모두 폐기한다
       refreshTokens.revokeFamily(token.getFamilyId(), now);
       throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
     }
-    if (!token.usableAt(now)) {
+    if (!justUsed && !token.usableAt(now)) {
       throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
     }
     User user =
@@ -77,8 +81,21 @@ public class TokenService {
     if (user.isDeleting()) {
       throw new ApiException(ErrorCode.ACCOUNT_DELETING);
     }
-    token.markUsed(now);
+    if (!justUsed) {
+      token.markUsed(now);
+    }
     return pair(user, token.getFamilyId());
+  }
+
+  /**
+   * 방금(유예 시간 안에) 쓴 토큰이 다시 왔는지. 한 페이지가 여러 요청을 한꺼번에 보내면 web이 같은 토큰으로 잇달아 갱신한다. 이걸 탈취로 보면 로그인이 끊겨서, 유예
+   * 시간 안에는 같은 로그인(family)에 새 토큰을 준다. 폐기됐거나 만료된 토큰은 해당하지 않는다.
+   */
+  private boolean justUsed(RefreshToken token, Instant now) {
+    return token.getUsedAt() != null
+        && token.getRevokedAt() == null
+        && token.getExpiresAt().isAfter(now)
+        && !token.getUsedAt().plus(properties.refreshReuseGrace()).isBefore(now);
   }
 
   /** 로그아웃: 그 로그인의 Refresh Token을 모두 폐기한다. 없는 토큰이어도 성공(멱등). */

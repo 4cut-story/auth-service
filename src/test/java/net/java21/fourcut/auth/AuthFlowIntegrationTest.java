@@ -46,6 +46,8 @@ import org.springframework.web.client.ResourceAccessException;
 @SpringBootTest(
     properties = {
       "AUTH_DEV_LOGIN_ENABLED=true",
+      // 재사용 감지를 바로 보려고 유예 시간을 없앤다 (유예는 TokenServiceTest)
+      "auth.refresh-reuse-grace=0s",
       "GITHUB_CLIENT_ID=test-client",
       "GITHUB_CLIENT_SECRET=test-secret",
       "PUBLIC_BASE_URL=https://4cut.example.net"

@@ -17,6 +17,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param devLoginEnabled 개발용 로그인(공급자 없이 닉네임으로 로그인). local에서만 켠다
  * @param conversationUrl conversation-service 주소 (탈퇴 정리)
  * @param contentUrl content-service 주소 (탈퇴 정리)
+ * @param refreshReuseGrace 방금 쓴 Refresh Token이 이 시간 안에 다시 오면 탈취로 보지 않고 새 토큰을 준다. web이 한 페이지의 여러
+ *     요청에서 동시에 갱신하면 같은 토큰이 잇달아 온다
  */
 @ConfigurationProperties("auth")
 public record AuthProperties(
@@ -28,7 +30,8 @@ public record AuthProperties(
     String jwtKeyId,
     @DefaultValue("false") boolean devLoginEnabled,
     URI conversationUrl,
-    URI contentUrl) {
+    URI contentUrl,
+    @DefaultValue("30s") Duration refreshReuseGrace) {
 
   /** 공개 주소 아래 경로. 끝의 '/'는 하나로 맞춘다. */
   public String publicUrl(String path) {
