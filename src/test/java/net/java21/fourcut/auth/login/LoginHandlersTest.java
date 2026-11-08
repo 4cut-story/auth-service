@@ -50,7 +50,8 @@ class LoginHandlersTest {
           null,
           false,
           URI.create("http://c"),
-          URI.create("http://d"));
+          URI.create("http://d"),
+          Duration.ofSeconds(30));
   private final LoginHandlers handlers =
       new LoginHandlers(accounts, profiles, codes, clients, properties);
 
