@@ -10,7 +10,9 @@ import net.java21.fourcut.auth.withdraw.WithdrawalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,15 +25,25 @@ public class UserController {
 
   private final UserQueryService queries;
   private final WithdrawalService withdrawals;
+  private final ProfileService accounts;
 
-  public UserController(UserQueryService queries, WithdrawalService withdrawals) {
+  public UserController(
+      UserQueryService queries, WithdrawalService withdrawals, ProfileService accounts) {
     this.queries = queries;
     this.withdrawals = withdrawals;
+    this.accounts = accounts;
   }
 
   @GetMapping("/api/v1/me")
   public MeView me(@RequestHeader(HeaderNames.USER_ID) String userId) {
     return queries.me(userId);
+  }
+
+  /** 내 표시 이름을 바꾼다. 비우거나 null이면 지워서 로그인 아이디가 보인다. 주소(/@아이디)는 바뀌지 않는다. */
+  @PatchMapping("/api/v1/me")
+  public MeView update(
+      @RequestHeader(HeaderNames.USER_ID) String userId, @RequestBody UpdateMeRequest request) {
+    return accounts.changeDisplayName(userId, request.displayName());
   }
 
   /** 탈퇴 (M-03). 계정을 탈퇴 처리 중으로 바꾸고, 다른 서비스 데이터를 지운 뒤 계정을 지운다. */

@@ -12,6 +12,9 @@ import net.java21.fourcut.auth.support.PublicId;
 @Table(name = "users")
 public class User extends BaseEntity {
 
+  /** 표시 이름 최대 길이. */
+  public static final int MAX_DISPLAY_NAME = 20;
+
   /** 계정 상태. 탈퇴 중에는 로그인할 수 없다. */
   public enum Status {
     ACTIVE,
@@ -24,6 +27,10 @@ public class User extends BaseEntity {
 
   @Column(nullable = false, length = 30)
   private String nickname;
+
+  /** 사용자가 정한 표시 이름. 없으면 화면은 nickname(로그인 아이디)을 쓴다. */
+  @Column(name = "display_name", length = MAX_DISPLAY_NAME)
+  private String displayName;
 
   @Column(name = "avatar_url", length = 500)
   private String avatarUrl;
@@ -51,6 +58,15 @@ public class User extends BaseEntity {
 
   public String getNickname() {
     return nickname;
+  }
+
+  public String getDisplayName() {
+    return displayName;
+  }
+
+  /** 표시 이름을 바꾼다. null이면 지워서 로그인 아이디로 돌아간다. 검증은 부르는 쪽이 한다. */
+  public void changeDisplayName(String displayName) {
+    this.displayName = displayName;
   }
 
   public String getAvatarUrl() {

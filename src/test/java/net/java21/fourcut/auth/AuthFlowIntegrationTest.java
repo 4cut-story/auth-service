@@ -9,6 +9,7 @@ import static org.springframework.restdocs.headers.HeaderDocumentation.requestHe
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
@@ -222,6 +223,74 @@ class AuthFlowIntegrationTest {
                         .optional()
                         .type(JsonFieldType.STRING),
                     fieldWithPath("joinedAt").description("가입 시각"))));
+  }
+
+  @Test
+  @DisplayName("내 닉네임(표시 이름)을 정하면 내 정보·사용자 조회에 나오고, 비우면 로그인 아이디로 돌아간다")
+  void changeDisplayName() throws Exception {
+    String userId = subject(exchange(devLogin("namer")));
+
+    mvc.perform(
+            patch("/api/v1/me")
+                .header("X-User-Id", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"displayName\":\"  마르코  \"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.nickname").value("namer"))
+        .andExpect(jsonPath("$.displayName").value("마르코"))
+        .andDo(
+            document(
+                "me-update",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
+                requestHeaders(headerWithName("X-User-Id").description("게이트웨이가 붙인 사용자 ID")),
+                requestFields(
+                    fieldWithPath("displayName")
+                        .description("화면에 보일 닉네임 (20자 이하). 비우거나 null이면 지워서 로그인 아이디가 보인다")
+                        .optional()
+                        .type(JsonFieldType.STRING)),
+                responseFields(
+                    fieldWithPath("id").description("사용자 ID"),
+                    fieldWithPath("nickname").description("로그인 아이디 (주소 /@아이디)"),
+                    fieldWithPath("displayName")
+                        .description("닉네임(표시 이름). 정하지 않았으면 빠진다")
+                        .optional()
+                        .type(JsonFieldType.STRING),
+                    fieldWithPath("avatarUrl")
+                        .description("프로필 이미지 주소")
+                        .optional()
+                        .type(JsonFieldType.STRING),
+                    fieldWithPath("providers").description("연결된 로그인 공급자 (GITHUB, GOOGLE)"))));
+
+    mvc.perform(get("/api/v1/users/{id}", userId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.displayName").value("마르코"));
+    mvc.perform(get("/api/v1/users/lookup").param("nickname", "namer"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.displayName").value("마르코"));
+
+    mvc.perform(
+            patch("/api/v1/me")
+                .header("X-User-Id", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"displayName\":\"" + "가".repeat(21) + "\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+
+    mvc.perform(
+            patch("/api/v1/me")
+                .header("X-User-Id", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"displayName\":\" \"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.displayName").doesNotExist());
+
+    mvc.perform(
+            patch("/api/v1/me")
+                .header("X-User-Id", "nope")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isNotFound());
   }
 
   @Test
