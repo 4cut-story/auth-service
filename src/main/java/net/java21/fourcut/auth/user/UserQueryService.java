@@ -28,7 +28,12 @@ public class UserQueryService {
             .distinct()
             .sorted(Comparator.naturalOrder())
             .toList();
-    return new MeView(user.getPublicId(), user.getNickname(), user.getAvatarUrl(), providers);
+    return new MeView(
+        user.getPublicId(),
+        user.getNickname(),
+        user.getDisplayName(),
+        user.getAvatarUrl(),
+        providers);
   }
 
   public UserView user(String userId) {
