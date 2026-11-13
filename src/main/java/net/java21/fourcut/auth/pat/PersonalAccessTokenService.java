@@ -25,8 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 개인 액세스 토큰 발급·조회·폐기와 Access Token 교환.
  *
- * <p>토큰은 web 서버에만 보낸다. web이 이 토큰을 짧은 Access Token으로 바꿔 게이트웨이를 부르고, 게시에 필요한 경로만 열어 준다. 교환한 Access
- * Token에는 {@code scope=publish} 클레임이 붙고 관리자 권한은 빠진다.
+ * <p>토큰은 web 서버에만 보낸다. web이 이 토큰을 짧은 Access Token으로 바꿔 게이트웨이를 부르고, 권한 범위에 맞는 경로만 열어 준다(publish는 게시
+ * 경로, sounds는 소리 검색 API). 교환한 Access Token에는 {@code scope} 클레임이 붙고 관리자 권한은 빠진다.
  */
 @Service
 public class PersonalAccessTokenService {
@@ -62,9 +62,12 @@ public class PersonalAccessTokenService {
     this.clock = clock;
   }
 
+  /** 발급. 권한 범위({@code publish}, {@code sounds})를 비우면 publish. */
   @Transactional
-  public IssuedToken issue(String userPublicId, String name, Integer expiresInDays) {
+  public IssuedToken issue(
+      String userPublicId, String name, Integer expiresInDays, String scopeName) {
     User user = active(userPublicId);
+    PersonalAccessToken.Scope scope = scope(scopeName);
     int days = expiresInDays == null ? DEFAULT_DAYS : expiresInDays;
     if (days < 1 || days > MAX_DAYS) {
       throw new ApiException(ErrorCode.VALIDATION_FAILED, "만료일은 1~90일 사이로 정해 주세요.");
@@ -92,7 +95,7 @@ public class PersonalAccessTokenService {
                 label,
                 hash(raw),
                 PREFIX + secret.substring(0, HINT_LENGTH - PREFIX.length()),
-                PersonalAccessToken.Scope.PUBLISH,
+                scope,
                 now.plus(Duration.ofDays(days))));
     tokens.flush();
     events.save(new PersonalAccessTokenEvent(token.getId(), Type.ISSUED, now));
@@ -147,6 +150,19 @@ public class PersonalAccessTokenService {
     String scope = token.getScope().name().toLowerCase(java.util.Locale.ROOT);
     String access = accessTokens.issue(user.getPublicId(), roles, scope, token.getPublicId());
     return new ExchangedToken(access, accessTokens.expiresInSeconds(), scope);
+  }
+
+  private static PersonalAccessToken.Scope scope(String name) {
+    if (name == null || name.isBlank()) {
+      return PersonalAccessToken.Scope.PUBLISH;
+    }
+    String upper = name.strip().toUpperCase(java.util.Locale.ROOT);
+    return java.util.Arrays.stream(PersonalAccessToken.Scope.values())
+        .filter(s -> s.name().equals(upper))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new ApiException(ErrorCode.VALIDATION_FAILED, "권한 범위는 publish 또는 sounds로 정해 주세요."));
   }
 
   private User active(String userPublicId) {
