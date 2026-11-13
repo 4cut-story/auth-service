@@ -156,11 +156,13 @@ public class PersonalAccessTokenService {
     if (name == null || name.isBlank()) {
       return PersonalAccessToken.Scope.PUBLISH;
     }
-    try {
-      return PersonalAccessToken.Scope.valueOf(name.strip().toUpperCase(java.util.Locale.ROOT));
-    } catch (IllegalArgumentException e) {
-      throw new ApiException(ErrorCode.VALIDATION_FAILED, "권한 범위는 publish 또는 sounds로 정해 주세요.");
-    }
+    String upper = name.strip().toUpperCase(java.util.Locale.ROOT);
+    return java.util.Arrays.stream(PersonalAccessToken.Scope.values())
+        .filter(s -> s.name().equals(upper))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new ApiException(ErrorCode.VALIDATION_FAILED, "권한 범위는 publish 또는 sounds로 정해 주세요."));
   }
 
   private User active(String userPublicId) {
