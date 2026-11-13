@@ -32,7 +32,7 @@ public class PersonalAccessTokenController {
   public ResponseEntity<IssuedToken> issue(
       @RequestHeader(HeaderNames.USER_ID) String userId, @Valid @RequestBody IssueRequest request) {
     return ResponseEntity.status(HttpStatus.CREATED)
-        .body(service.issue(userId, request.name(), request.expiresInDays()));
+        .body(service.issue(userId, request.name(), request.expiresInDays(), request.scope()));
   }
 
   @GetMapping("/api/v1/me/tokens")
@@ -55,8 +55,8 @@ public class PersonalAccessTokenController {
     return service.exchange(request.token());
   }
 
-  /** 발급 요청. 만료일을 비우면 30일. */
-  public record IssueRequest(@NotBlank String name, Integer expiresInDays) {}
+  /** 발급 요청. 만료일을 비우면 30일, 권한 범위를 비우면 publish. */
+  public record IssueRequest(@NotBlank String name, Integer expiresInDays, String scope) {}
 
   /** 교환 요청. */
   public record ExchangeRequest(@NotBlank String token) {}

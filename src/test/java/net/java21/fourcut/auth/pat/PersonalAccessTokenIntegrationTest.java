@@ -52,7 +52,7 @@ class PersonalAccessTokenIntegrationTest {
         fieldWithPath("id").description("토큰 ID"),
         fieldWithPath("name").description("이름"),
         fieldWithPath("hint").description("토큰 앞부분 (알아보기용)"),
-        fieldWithPath("scope").description("권한 범위 (publish: 게시만)"),
+        fieldWithPath("scope").description("권한 범위 (publish: 게시, sounds: 소리 검색 API)"),
         fieldWithPath("createdAt").description("발급 시각"),
         fieldWithPath("expiresAt").description("만료 시각"),
         fieldWithPath("lastUsedAt").description("마지막 사용 시각").optional().type(JsonFieldType.STRING),
@@ -127,7 +127,7 @@ class PersonalAccessTokenIntegrationTest {
                 post("/api/v1/me/tokens")
                     .header("X-User-Id", userId)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\":\"스토리 자동화\",\"expiresInDays\":30}"))
+                    .content("{\"name\":\"스토리 자동화\",\"expiresInDays\":30,\"scope\":\"publish\"}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.info.scope").value("publish"))
             .andDo(
@@ -139,7 +139,11 @@ class PersonalAccessTokenIntegrationTest {
                         fieldWithPath("name").description("이름 (어디에 쓰는지, 50자까지)"),
                         fieldWithPath("expiresInDays")
                             .description("유효 기간(일, 1~90). 비우면 30")
-                            .optional()),
+                            .optional(),
+                        fieldWithPath("scope")
+                            .description("권한 범위 (publish 또는 sounds). 비우면 publish")
+                            .optional()
+                            .type(JsonFieldType.STRING)),
                     responseFields(fieldWithPath("token").description("토큰 원문. 이 응답에서만 보인다"))
                         .andWithPrefix("info.", INFO)))
             .andReturn()
@@ -213,6 +217,29 @@ class PersonalAccessTokenIntegrationTest {
             PersonalAccessTokenEvent.Type.ISSUED,
             PersonalAccessTokenEvent.Type.USED,
             PersonalAccessTokenEvent.Type.REVOKED);
+  }
+
+  @Test
+  @DisplayName("PAT-03: 소리 검색 토큰을 발급하면 scope=sounds Access Token으로 바뀌고, 모르는 권한 범위는 거절한다")
+  void soundsScope() throws Exception {
+    String userId = login("소리작가");
+    String issued = issue(userId, "{\"name\":\"소리 검색\",\"scope\":\"sounds\"}");
+    assertThat((String) JsonPath.read(issued, "$.info.scope")).isEqualTo("sounds");
+    String raw = JsonPath.read(issued, "$.token");
+    String exchanged =
+        mvc.perform(
+                post("/auth/pat/exchange")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"token\":\"" + raw + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.scope").value("sounds"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    assertThat((String) claim(JsonPath.read(exchanged, "$.accessToken"), "$.scope"))
+        .isEqualTo("sounds");
+    assertThat(issue(userId, "{\"name\":\"a\",\"scope\":\"admin\"}")).contains("VALIDATION_FAILED");
+    assertThat(issue(userId, "{\"name\":\"b\",\"scope\":\" \"}")).contains("publish");
   }
 
   @Test

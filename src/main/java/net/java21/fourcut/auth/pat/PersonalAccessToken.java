@@ -14,9 +14,10 @@ import net.java21.fourcut.auth.user.BaseEntity;
 @Table(name = "personal_access_tokens")
 public class PersonalAccessToken extends BaseEntity {
 
-  /** 권한 범위. 지금은 게시(대화 올리기·만화 만들기·게시물 올리기)만 있다. */
+  /** 권한 범위. 게시(대화 올리기·만화 만들기·게시물 올리기)와 소리 검색(배경음·효과음 검색 API 읽기). */
   public enum Scope {
-    PUBLISH
+    PUBLISH,
+    SOUNDS
   }
 
   @Column(name = "public_id", nullable = false, updatable = false, length = PublicId.LENGTH)
